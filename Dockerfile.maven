@@ -1,0 +1,32 @@
+# Dockerfile.maven
+FROM openjdk:11-jdk
+
+# Instalar Maven y herramientas necesarias
+RUN apt-get update && \
+    apt-get install -y maven openssh-server curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Configurar SSH
+RUN mkdir /var/run/sshd && \
+    echo 'root:password123' | chpasswd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+# Crear usuario para deployment
+RUN useradd -m -s /bin/bash deployer && \
+    echo 'deployer:deployer123' | chpasswd && \
+    mkdir -p /home/deployer/staging && \
+    chown -R deployer:deployer /home/deployer
+
+# Crear directorio de trabajo
+WORKDIR /app
+
+# Exponer puertos
+EXPOSE 22 8080
+
+# Script de inicio
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
+CMD ["/start.sh"]
